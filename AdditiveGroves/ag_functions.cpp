@@ -820,21 +820,41 @@ void bestForID(doublevvv& surfaceV, bool rms, int& bestTiGNNo, int& bestAlphaNo)
 	else if(!fit[5][0])
 		bestTiGNNo = 4;
 	else
-	{	//find n giving the best performance in the top part of the grid in the underfitting area
-		double bestPerf = surfaceV[4][0][bagNo];
-		int realBestNo = 4;
+	{	//find n giving the best performance in the underfitting area: a) on the whole grid b) in the n >= 6 part of the grid c) in the n >=8 part of the grid
+		double bPerfAll = surfaceV[0][0][bagNo];
+		int bTiGNNoAll = 0;
+		double bPerf6p = surfaceV[4][0][bagNo];
+		int bTiGNNo6p = 4;
+		double bPerf8p = surfaceV[5][0][bagNo];
+		int bTiGNNo8p = 5;
+
 		for(int alphaNo = 0; alphaNo < alphaN; alphaNo++)
-			for(int tigNNo = 4; tigNNo < tigNN; tigNNo++)
-				if(fit[tigNNo][alphaNo] && ((surfaceV[tigNNo][alphaNo][bagNo] < bestPerf) && rms || (surfaceV[tigNNo][alphaNo][bagNo] > bestPerf) && !rms))
+			for(int tigNNo = 0; tigNNo < tigNN; tigNNo++)
+				if(fit[tigNNo][alphaNo])
 				{
-					bestPerf = surfaceV[tigNNo][alphaNo][bagNo];
-					realBestNo = tigNNo;
+					if((surfaceV[tigNNo][alphaNo][bagNo] < bPerfAll) && rms || (surfaceV[tigNNo][alphaNo][bagNo] > bPerfAll) && !rms)
+					{
+						bPerfAll = surfaceV[tigNNo][alphaNo][bagNo];
+						bTiGNNoAll = tigNNo;
+					} 
+					if((tigNNo >= 4) && ((surfaceV[tigNNo][alphaNo][bagNo] < bPerf6p) && rms || (surfaceV[tigNNo][alphaNo][bagNo] > bPerf6p) && !rms))
+					{
+						bPerf6p = surfaceV[tigNNo][alphaNo][bagNo];
+						bTiGNNo6p = tigNNo;
+					}
+					if((tigNNo >= 5) && ((surfaceV[tigNNo][alphaNo][bagNo] < bPerf8p) && rms || (surfaceV[tigNNo][alphaNo][bagNo] > bPerf8p) && !rms))
+					{
+						bPerf8p = surfaceV[tigNNo][alphaNo][bagNo];
+						bTiGNNo8p = tigNNo;
+					}
 				}
 		
-		if(realBestNo == 4)
-			bestTiGNNo = 5;
+		if(bTiGNNoAll < 4)
+			bestTiGNNo = bTiGNNo6p;
+		else if(bTiGNNoAll == 4)
+			bestTiGNNo = bTiGNNo8p;
 		else
-			bestTiGNNo = realBestNo;
+			bestTiGNNo = bTiGNNoAll;
 	}
 
 	//find best alpha for interaction detection
