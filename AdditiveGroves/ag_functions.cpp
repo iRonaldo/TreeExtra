@@ -125,7 +125,7 @@ void trainOut(TrainInfo& ti, doublevv& dir, doublevvv& rmsV, doublevvv& surfaceV
 			fsurface << alpha << " \t" << tigN << " \t" << curPerf << "\t" << !moreBag(rmsV[tigNNo][alphaNo]) << endl;
 
 			//check for the best result inside the active output area
-			if((tigNNo >= startTiGNNo) && (alphaNo >= startAlphaNo))
+			if((ti.mode != LAYERED) && (tigNNo >= startTiGNNo) && (alphaNo >= startAlphaNo))
 				if((tigNNo == startTiGNNo) && (alphaNo == startAlphaNo) || 
 					ti.rms && (curPerf < bestPerf) ||
 					!ti.rms && (curPerf > bestPerf) ||
@@ -144,13 +144,11 @@ void trainOut(TrainInfo& ti, doublevv& dir, doublevvv& rmsV, doublevvv& surfaceV
 	
 	fsurface << "\n\n";
 
-	//for layered, save the bestX numbers into realBestX numbers, and recalculate bestX numbers for interaction detection
-
-	double realBestAlpha = bestAlpha;
-	int realBestTiGN = bestTiGN;
+	//for layered mode, calculate bestX numbers for interaction detection
+	bool fit = true; //tells if the best result is in the fit zone for layered mode
 	if(ti.mode == LAYERED)
 	{
-		bestForID(surfaceV, ti.rms, bestTiGNNo, bestAlphaNo);
+		fit = bestForID(surfaceV, ti.rms, bestTiGNNo, bestAlphaNo);
 		bestAlpha = (bestAlphaNo < alphaN - 1) ? alphaVal(bestAlphaNo) : ti.minAlpha;
 		bestTiGN = tigVal(bestTiGNNo);
 		bestPerf = surfaceV[bestTiGNNo][bestAlphaNo][ti.bagN - 1];
@@ -229,15 +227,15 @@ void trainOut(TrainInfo& ti, doublevv& dir, doublevvv& rmsV, doublevvv& surfaceV
 	//if the best possible performance is not achieved,
 	//and the best value is on the border, or bagging has not yet converged, recommend expanding
 	if( (ti.rms && (bestPerf != 0) || !ti.rms && (bestPerf != 1)) &&
-		(	((bestAlpha == ti.minAlpha) && (bestAlpha == realBestAlpha) && (ti.minAlpha != 0)) || 
-			(bestTiGN == ti.maxTiGN) && (bestTiGN == realBestTiGN) || 
+		(	((bestAlpha == ti.minAlpha) && fit && (ti.minAlpha != 0)) || 
+			(bestTiGN == ti.maxTiGN) && fit || 
 			recBagging ||
 			(ti.mode == LAYERED) && (ti.maxTiGN < 6)
 		))
 	{
 		clog << "\nRecommendation: relaxing model parameters might produce a better model.\n"
 			<< "Suggested action: ag_expand";
-		if((bestAlpha == ti.minAlpha) && (bestAlpha == realBestAlpha) && (ti.minAlpha != 0))
+		if((bestAlpha == ti.minAlpha) && fit && (ti.minAlpha != 0))
 		{
 			double recAlpha = ti.minAlpha * 0.1;
 			//make sure that you don't recommend alpha that is too small for this data set
@@ -245,7 +243,7 @@ void trainOut(TrainInfo& ti, doublevv& dir, doublevvv& rmsV, doublevvv& surfaceV
 				recAlpha = 0;
 			clog << " -a " << recAlpha;
 		}
-		if((bestTiGN == ti.maxTiGN) && (bestTiGN == realBestTiGN) || (ti.mode == LAYERED) && (ti.maxTiGN < 6))
+		if((bestTiGN == ti.maxTiGN) && fit || (ti.mode == LAYERED) && (ti.maxTiGN < 6))
 		{
 			int recTiGN = tigVal(getTiGNN(ti.maxTiGN) + 1);
 			clog << " -n " << recTiGN;
@@ -771,7 +769,8 @@ void outIPlots(INDdata& data, iipairv interactions, int quantN1, int quantN2, st
 }
 
 //calculate the best place on the performance grid for the interaction detection
-void bestForID(doublevvv& surfaceV, bool rms, int& bestTiGNNo, int& bestAlphaNo)
+//returns true if it is located in the underfitting area
+bool bestForID(doublevvv& surfaceV, bool rms, int& bestTiGNNo, int& bestAlphaNo)
 {
 	//surfaceV[tigNNo][alphaNo][bagNo]
 	int tigNN = (int)surfaceV.size();
@@ -860,11 +859,14 @@ void bestForID(doublevvv& surfaceV, bool rms, int& bestTiGNNo, int& bestAlphaNo)
 	//find best alpha for interaction detection
 	bestAlphaNo = 0;
 	for(int alphaNo = 1; alphaNo < alphaN; alphaNo++)
-	if(!fit[bestTiGNNo][alphaNo])
-	{
-		bestAlphaNo = alphaNo - 1;
-		break;
-	}
+		if(!fit[bestTiGNNo][alphaNo])
+		{
+			bestAlphaNo = alphaNo - 1;
+			break;
+		}
+
 	if(fit[bestTiGNNo][alphaN - 1])
 		bestAlphaNo = alphaN - 1;
+
+	return fit[bestTiGNNo][bestAlphaNo];
 }
