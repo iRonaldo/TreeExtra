@@ -706,7 +706,7 @@ void outIPlots(INDdata& data, iipairv interactions, int quantN1, int quantN2, st
 	//4.1 Output joint effect
 		fiplot << "Joint effect table\nrows: \t" << attrName1 << "\ncolumns: \t" << attrName2 
 			<< "\nFirst row/column - quantile counts. Second row/column - quantile centers. " 
-			<< "Ignore four zeros in upper left corner.\n\n";
+			<< "Ignore four zeros in the upper left corner.\n\n";
 
 		//counts of feature 2
 		fiplot << "0\t0";	
